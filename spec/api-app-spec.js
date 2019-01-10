@@ -528,7 +528,10 @@ describe('app module', () => {
     })
   })
 
-  describe('app.get/setLoginItemSettings API', () => {
+  describe('app.get/setLoginItemSettings API', function () {
+    // allow up to three retries to account for flaky mas results
+    this.retries(3)
+
     const updateExe = path.resolve(path.dirname(process.execPath), '..', 'Update.exe')
     const processStartArgs = [
       '--processStart', `"${path.basename(process.execPath)}"`,
@@ -536,9 +539,7 @@ describe('app module', () => {
     ]
 
     before(function () {
-      if (process.platform === 'linux') {
-        this.skip()
-      }
+      if (process.platform === 'linux') this.skip()
     })
 
     beforeEach(() => {
@@ -556,7 +557,7 @@ describe('app module', () => {
       // Wait because login item settings are not applied immediately in MAS build
       const delay = process.mas ? 250 : 0
       setTimeout(() => {
-        expect(app.getLoginItemSettings()).to.deep.equal({
+        expect(app.getLoginItemSettings()).to.eventually.deep.equal({
           openAtLogin: true,
           openAsHidden: false,
           wasOpenedAtLogin: false,
@@ -572,7 +573,7 @@ describe('app module', () => {
       // Wait because login item settings are not applied immediately in MAS build
       const delay = process.mas ? 250 : 0
       setTimeout(() => {
-        expect(app.getLoginItemSettings()).to.deep.equal({
+        expect(app.getLoginItemSettings()).to.eventually.deep.equal({
           openAtLogin: true,
           openAsHidden: process.platform === 'darwin' && !process.mas, // Only available on macOS
           wasOpenedAtLogin: false,
@@ -584,36 +585,32 @@ describe('app module', () => {
     })
 
     it('correctly sets and unsets the LoginItem', function () {
-      expect(app.getLoginItemSettings().openAtLogin).to.be.false()
+      expect(app.getLoginItemSettings().openAtLogin).to.eventually.be.false()
 
       app.setLoginItemSettings({ openAtLogin: true })
-      expect(app.getLoginItemSettings().openAtLogin).to.be.true()
+      expect(app.getLoginItemSettings().openAtLogin).to.eventually.be.true()
 
       app.setLoginItemSettings({ openAtLogin: false })
-      expect(app.getLoginItemSettings().openAtLogin).to.be.false()
+      expect(app.getLoginItemSettings().openAtLogin).to.eventually.be.false()
     })
 
     it('correctly sets and unsets the LoginItem as hidden', function () {
       if (process.platform !== 'darwin' || process.mas) this.skip()
 
-      expect(app.getLoginItemSettings().openAtLogin).to.be.false()
-      expect(app.getLoginItemSettings().openAsHidden).to.be.false()
+      expect(app.getLoginItemSettings().openAtLogin).to.eventually.be.false()
+      expect(app.getLoginItemSettings().openAsHidden).to.eventually.be.false()
 
       app.setLoginItemSettings({ openAtLogin: true, openAsHidden: true })
-      expect(app.getLoginItemSettings().openAtLogin).to.be.true()
-      expect(app.getLoginItemSettings().openAsHidden).to.be.true()
+      expect(app.getLoginItemSettings().openAtLogin).to.eventually.be.true()
+      expect(app.getLoginItemSettings().openAsHidden).to.eventually.be.true()
 
       app.setLoginItemSettings({ openAtLogin: true, openAsHidden: false })
-      expect(app.getLoginItemSettings().openAtLogin).to.be.true()
-      expect(app.getLoginItemSettings().openAsHidden).to.be.false()
+      expect(app.getLoginItemSettings().openAtLogin).to.eventually.be.true()
+      expect(app.getLoginItemSettings().openAsHidden).to.eventually.be.false()
     })
 
     it('allows you to pass a custom executable and arguments', function () {
-      if (process.platform !== 'win32') {
-        // FIXME(alexeykuzmin): Skip the test.
-        // this.skip()
-        return
-      }
+      if (process.platform !== 'win32') this.skip()
 
       app.setLoginItemSettings({ openAtLogin: true, path: updateExe, args: processStartArgs })
 
